@@ -60,11 +60,6 @@ source("azmet.hourly.data.download.R")
 # BEFORE FUNCTION IS DEVELOPED -----
 
 
-# Data from: https://cals.arizona.edu/azmet/az-data.htm. The following is set 
-# for data from the Willcox Bench station.
-data_dir <- 
-  "C:/Users/jlweiss/OneDrive - University of Arizona/Documents/R/datastore/azmet/"
-
 # Data collection at the Willcox Bench station started in middle 2016 and 
 # continues at present. 'obs_yrs' format matches data filename convention.
 obs_yrs <- seq(16, 20)
@@ -74,9 +69,10 @@ col_names <-
   c("Year", "JDay", "Hour", "Temp", "rh", "vpd", "sr", "prcp", "4sm", "20sm",
     "wavg", "wvm", "wvd", "wdsd", "mws", "reto", "avp", "dp")
 
+# Data from: https://cals.arizona.edu/azmet/az-data.htm
 # Load data, which is in files for individual years
 for (iyr in 1:length(obs_yrs)) {
-  obs <- read.table(paste0(data_dir, "39", obs_yrs[iyr], "rh.txt"),
+  obs <- read.table(paste0("39", obs_yrs[iyr], "rh.txt"),
                     header = FALSE,
                     sep = ',',
                     fill = TRUE)
@@ -99,7 +95,7 @@ for (iyr in 1:length(obs_yrs)) {
   rm(obs)
 }
 
-rm(col_names, data_dir, iyr)
+rm(col_names, iyr)
 
 # Filter hourly data to the months of June - August
 stn_data_hourly <- filter(stn_data_hourly, Month >=6 & Month <= 8)
@@ -183,46 +179,40 @@ stn_data_daily <- melt(data = stn_data_daily,
 
 # PLOT FOR HOURLY TEMPERATURE CATEGORIES  --------------------
 
-category_colors <- c("below55" = "#4575b4",
-                     "bet5560" = "#74add1",
-                     "bet6065" = "#abd9e9",
-                     "bet95100" = "#fdae61",
-                     "bet100105" = "#f46d43",
-                     "above105" = "#d73027")
+category_colors <- c("below55" = "#88419d",
+                     "bet5560" = "#8c96c6",
+                     "bet6065" = "#b3cde3",
+                     "bet95100" = "#fecc5c",
+                     "bet100105" = "#fd8d3c",
+                     "above105" = "#e31a1c")
 
 p <- ggplot(data = stn_data_daily,
-            mapping = aes(x = Date, y = Hours, color = TempCode)) +
+            mapping = aes(x = JDay, y = Hours, color = TempCode, fill = TempCode)) +
   
-  geom_line(size = 1) +
+  geom_col(position = "dodge") +
   
-  facet_wrap(~ Year, ncol = 2, scales = "free_x") +
+  facet_wrap(~ Year, ncol = 1, scales = "free_x") +
   
-  scale_color_manual(values = category_colors) +
+  scale_color_manual(values = category_colors,
+                     aesthetics = c("color", "fill"),
+                     labels = c("x","y","z","a","b","c")) +
+  #scale_fill_manual(values = category_colors) +
   
   
   # Specify axis breaks, gridlines, and limits
-  scale_x_date(
-    #limits = c(as.Date("06-01", format = "%m-%d"), as.Date("September 30"))),
-    #date_labels = "%b",
-    #breaks = c(1, 15, 32, 46, 60, 74, 
-    #           91, 105, 121, 135, 152, 166,
-    #           182, 196, 213, 227, 244),
-    #labels = c("Jan 1", "Jan 15", "Feb 1", "Feb 15", "Mar 1", "Mar 15",
-    #           "Apr 1", "Apr 15", "May 1", "May 15", "Jun 1", "Jun 15",
-    #           "Jul 1", "Jul 15", "Aug 1", "Aug 15", "Sep 1"),
-    #breaks = c(1, 8, 15, 22, 32, 39, 46, 53, 
-    #           60, 67, 74, 81, 91, 98, 105, 112,
-    #           121, 128, 135, 142, 152, 159, 166, 173,
-    #           182, 189, 196, 203, 213, 220, 227, 234, 244),
+  scale_x_continuous(
+    breaks = c(1, 15, 32, 46,
+               60, 74, 91, 105,
+               121, 135, 152, 166,
+               182, 196, 213, 227),
     #labels = c("1/1", "", "1/15", "", "2/1", "", "2/15", "", 
     #           "3/1", "", "3/15", "", "4/1", "", "4/15", "",
     #           "5/1", "", "5/15", "", "6/1", "", "6/15", "",
-    #           "7/1", "", "7/15", "", "8/1", "", "8/15", "", "9/1"),
-    #limits = c((min(stn_data_daily$Date), max(stn_data_daily$Date)),
+    #           "7/1", "", "7/15", "", "8/1", "", "8/15", ""),
+    limits = c(152, 245),
     #minor_breaks = c(1, 8, 15, 22, 32, 39, 46, 53, 60, 67, 74, 81, 
     #                 91, 98, 105, 112, 121, 128, 135, 142, 152, 159, 166, 173,
     #                 182, 189, 196, 203, 213, 220, 227, 234, 244),
-    #date_labels = "%b %d",
     expand = c(0.0, 0.0)
   ) +
 
@@ -236,11 +226,11 @@ p <- ggplot(data = stn_data_daily,
   ) +
   
   # Add the graph title, subtitle, and axis labels
-  ggtitle("Hours within Key Temperature Ranges, June-August, 2017-2020") +
+  ggtitle("Hours in Key Summer Temperature Ranges, 2016-2020") +
   labs(subtitle = "AZMET Willcox Bench Station, Cochise County, Arizona",
-       x = "\nDate",
+       x = "\nDay of Year",
        y = "Hours per Day\n",
-       caption = "\nmeteorological data: AZMET Willcox Bench station (cals.arizona.edu/azmet)") +
+       caption = "\ndata from Arizona Meteorological Network (cals.arizona.edu/azmet)") +
   
   # Further customize the figure appearance
   theme_light(base_family = "Source Sans Pro") +
@@ -253,7 +243,9 @@ p <- ggplot(data = stn_data_daily,
         axis.ticks.length.y = unit(0.0, "mm"),
         axis.title.x = element_text(color = "gray40", size = 10),
         axis.title.y = element_text(color = "gray40", size = 10),
-        legend.title = element_text(color = "gray40", size = 10),
+        legend.direction = "horizontal",
+        legend.text = element_text(color = "gray40", size = 10),
+        legend.title = element_text(color = "gray40", size = 10, face = "bold"),
         legend.position = "bottom",
         panel.border = element_blank(),
         panel.grid.major.x = element_line(color = "gray80", size = 0.25),

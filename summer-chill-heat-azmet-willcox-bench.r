@@ -40,69 +40,22 @@ yr_end <- stn_list$end_yr[which(stn_list$stn == stn_name)]
 source("azmet.hourly.data.download.R")
 
 
-# DOWNLOAD AND TRANSFORM DAILY AZMET DATA --------------------
+# DOWNLOAD AND TRANSFORM HOURLY AZMET DATA --------------------
 
 
-#stn_data_hourly <- azmet.daily.data.download(stn_name)
+stn_data_hourly <- azmet.hourly.data.download(stn_name)
 
-# Retain necessary variables and data
-#stn_data_hourly <- select(stn_data_hourly, date, year, month, day, doy, Tmax, Tmin, PRCtot)
-#stn_data_hourly <- filter(stn_data_hourly, year >= yr_start & year <= yr_end)
+# Retain necessary variables
+stn_data_hourly <- select(stn_data_hourly, DateTime, Date, Year, Month, Day, 
+                          JDay, Hour, Temp)
 
-# Convert temperatures from Celsius to Fahrenheit, and precipitation from 
-# millimeters to inches
-#stn_data_hourly$Tmax <- (1.8 * stn_data_hourly$Tmax) + 32
-#stn_data_hourly$Tmin <- (1.8 * stn_data_hourly$Tmin) + 32
-#stn_data_hourly$PRCtot <- stn_data_hourly$PRCtot / 25.4
-
-
-# BEFORE FUNCTION IS DEVELOPED -----
-
-
-# Data collection at the Willcox Bench station started in middle 2016 and 
-# continues at present. 'obs_yrs' format matches data filename convention.
-obs_yrs <- seq(16, 20)
-
-# Data column names are from: https://cals.arizona.edu/azmet/raw2003.htm
-col_names <- 
-  c("Year", "JDay", "Hour", "Temp", "rh", "vpd", "sr", "prcp", "4sm", "20sm",
-    "wavg", "wvm", "wvd", "wdsd", "mws", "reto", "avp", "dp")
-
-# Data from: https://cals.arizona.edu/azmet/az-data.htm
-# Load data, which is in files for individual years
-for (iyr in 1:length(obs_yrs)) {
-  obs <- read.table(paste0("39", obs_yrs[iyr], "rh.txt"),
-                    header = FALSE,
-                    sep = ',',
-                    fill = TRUE)
-  colnames(obs) <- col_names
-  obs <- select(obs, Year, JDay, Hour, Temp)
-  obs_date <- as.Date(obs$JDay-1, origin = paste0("20", obs_yrs[iyr], "-01-01"))
-  obs["Date"] <- as.Date(obs_date)
-  obs["Month"] <- as.numeric(format(obs_date, "%m"))
-  obs["Day"]  <- as.numeric(format(obs_date, "%d"))
-  rm(obs_date)
-  
-  # Concatenate station data from different years
-  if (iyr == 1) {
-    stn_data_hourly <- obs
-  }
-  else {
-    stn_data_hourly <- rbind(stn_data_hourly, obs)
-  }
-  
-  rm(obs)
-}
-
-rm(col_names, iyr)
+# Convert temperature from Celsius to Fahrenheit
+stn_data_hourly$Temp <- (1.8 * stn_data_hourly$Temp) + 32
 
 # Filter hourly data to the months of June - September
 stn_data_hourly <- filter(stn_data_hourly, Month >=6 & Month <= 9)
 
-# Convert daily average temperature data from degrees C to degrees F
-stn_data_hourly$Temp <- (1.8 * stn_data_hourly$Temp) + 32
-
-# Assign temperature categories
+# Set and define temperature categories
 stn_data_hourly["below55"] <- NA
 stn_data_hourly["bet5560"] <- NA
 stn_data_hourly["bet6065"] <- NA
@@ -168,7 +121,7 @@ stn_data_daily <- stn_data_hourly %>%
             above105 = sum(above105, na.rm = TRUE))
 
 
-# NEW SECTION FOR SCATTER / LINE PLOT ----------
+# DERIVE ADDITIONAL DATA FOR SCATTER & LINE PLOTS --------------------
 
 
 # Calculate seven-day (weekly) rolling averages for temperature categories by
@@ -319,91 +272,10 @@ p <- ggplot() +
         strip.text.x = element_text(color = "gray40", size = 12, face = "bold")
   )
 
-
-
-
-
-
-
-
-p <- ggplot(data = filter(stn_data_daily, Hours > 0),
-            mapping = aes(x = JDay, y = Hours, color = TempCode, fill = TempCode)) +
-  
-  geom_point(alpha = 1.0, position = "jitter") +
-  
-  facet_wrap(~ Year, ncol = 1, scales = "free_x") +
-  
-  scale_color_manual(values = category_colors,
-                     aesthetics = c("color", "fill"),
-                     labels = c("x","y","z","a","b","c")) +
-  #scale_fill_manual(values = category_colors) +
-  
-  
-  # Specify axis breaks, gridlines, and limits
-  scale_x_continuous(
-    breaks = c(1, 15, 32, 46,
-               60, 74, 91, 105,
-               121, 135, 152, 166,
-               182, 196, 213, 227),
-    #labels = c("1/1", "", "1/15", "", "2/1", "", "2/15", "", 
-    #           "3/1", "", "3/15", "", "4/1", "", "4/15", "",
-    #           "5/1", "", "5/15", "", "6/1", "", "6/15", "",
-    #           "7/1", "", "7/15", "", "8/1", "", "8/15", ""),
-    limits = c(152, 245),
-    #minor_breaks = c(1, 8, 15, 22, 32, 39, 46, 53, 60, 67, 74, 81, 
-    #                 91, 98, 105, 112, 121, 128, 135, 142, 152, 159, 166, 173,
-    #                 182, 189, 196, 203, 213, 220, 227, 234, 244),
-    expand = c(0.0, 0.0)
-  ) +
-
-  scale_y_continuous(
-    breaks = seq(from = 0, to = max(stn_data_daily$Hours, na.rm = TRUE), 
-                 by = 2),
-    limits = c(0, max(stn_data_daily$Hours, na.rm = TRUE)),
-    minor_breaks = seq(from = 0, to = max(stn_data_daily$Hours, na.rm = TRUE), 
-                       by = 1),
-    expand = c(0.06, 0.0)
-  ) +
-  
-  # Add the graph title, subtitle, and axis labels
-  ggtitle("Hours in Key Summer Temperature Ranges, 2016-2020") +
-  labs(subtitle = "AZMET Willcox Bench Station, Cochise County, Arizona",
-       x = "\nDay of Year",
-       y = "Hours per Day\n",
-       caption = "\ndata from Arizona Meteorological Network (cals.arizona.edu/azmet)") +
-  
-  # Further customize the figure appearance
-  theme_light(base_family = "Source Sans Pro") +
-  theme(axis.line = element_blank(),
-        axis.text.x = element_text(color = "gray40", size = 10),
-        axis.text.y = element_text(color = "gray40", size = 10),
-        axis.ticks.x.bottom = element_line(color = "gray80", size = 0.25),
-        axis.ticks.y = element_blank(),
-        axis.ticks.length.x = unit(0.0, "mm"),
-        axis.ticks.length.y = unit(0.0, "mm"),
-        axis.title.x = element_text(color = "gray40", size = 10),
-        axis.title.y = element_text(color = "gray40", size = 10),
-        legend.direction = "horizontal",
-        legend.text = element_text(color = "gray40", size = 10),
-        legend.title = element_text(color = "gray40", size = 10, face = "bold"),
-        legend.position = "bottom",
-        panel.border = element_blank(),
-        panel.grid.major.x = element_line(color = "gray80", size = 0.25),
-        panel.grid.major.y = element_line(color = "gray80", size = 0.25),
-        panel.grid.minor.x = element_blank(),
-        panel.grid.minor.y = element_line(color = "gray80", size = 0.25),
-        plot.caption = element_text(color = "gray40", hjust = 0.0, size = 7),
-        plot.caption.position = "plot",
-        plot.margin = unit(c(1, 1 ,1, 1), "mm"),
-        plot.subtitle = (element_text(family = "Source Serif Pro", size = 12)), 
-        plot.title = (element_text(face = "bold", family = "Source Serif Pro", size = 16)),
-        plot.title.position = "plot",
-        strip.background = element_rect(fill = "white"),
-        strip.text.x = element_text(color = "gray40", size = 12, face = "bold")
-  )
-
 #  Save the figure
-ggsave(file = "summer-chill-heat-azmet-willcox-bench-202006.eps",
+ggsave(file = paste0("summer-chill-heat-azmet-willcox-bench-", 
+                     Sys.Date(),
+                     ".eps"),
        plot = p, device = cairo_pdf, path = NULL, scale = 1,
        width = 6, height = 9, units = "in", dpi = 300) 
 

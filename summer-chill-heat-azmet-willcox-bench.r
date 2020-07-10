@@ -49,11 +49,11 @@ stn_data_hourly <- azmet.hourly.data.download(stn_name)
 stn_data_hourly <- select(stn_data_hourly, DateTime, Date, Year, Month, Day, 
                           JDay, Hour, Temp)
 
-# Convert temperature from Celsius to Fahrenheit
-stn_data_hourly$Temp <- (1.8 * stn_data_hourly$Temp) + 32
-
 # Filter hourly data to the months of June - September
 stn_data_hourly <- filter(stn_data_hourly, Month >=6 & Month <= 9)
+
+# Convert temperature from Celsius to Fahrenheit
+stn_data_hourly$Temp <- (1.8 * stn_data_hourly$Temp) + 32
 
 # Set and define temperature categories
 stn_data_hourly["below55"] <- NA
@@ -221,7 +221,7 @@ p <- ggplot() +
     #                 182, 189, 196, 203, 213, 220, 227, 234, 244),
     expand = c(0.0, 0.0)
   ) +
-  
+
   scale_y_continuous(
     breaks = seq(from = 0, to = max(stn_data_daily$Hours, na.rm = TRUE), 
                  by = 3),
@@ -272,10 +272,146 @@ p <- ggplot() +
         strip.text.x = element_text(color = "gray40", size = 12, face = "bold")
   )
 
+p
+
+
+
+
+
+stn_data_daily$TempCode <- factor(stn_data_daily$TempCode,
+                                  levels = c(
+                                    "below55", "bet5560", "bet6065",
+                                    "bet95100", "bet100105", "above105",
+                                    "below55wk", "bet5560wk", "bet6065wk",
+                                    "bet95100wk", "bet100105wk", "above105wk"
+                                  ),
+                                  labels = c(
+                                    "< 55°F", "55-60°F", "60-65°F",
+                                    "95-100°F", "100-105°F", "> 105°F",
+                                    "< 55°F 7-day avg", "55-60°F 7-day avg",
+                                    "60-65°F 7-day avg", "95-100°F 7-day avg",
+                                    "100-105°F 7-day avg", "> 105°F 7-day avg"
+                                  ))
+
+category_colors <- c(
+  "< 55°F" = "#88419d", "55-60°F" = "#8c96c6", "60-65°F" = "#b3cde3",
+  "95-100°F" = "#fecc5c", "100-105°F" = "#fd8d3c", "> 105°F" = "#e31a1c",
+  "< 55°F 7-day avg" = "#88419d", "55-60°F 7-day avg" = "#8c96c6", 
+  "60-65°F 7-day avg" = "#b3cde3", "95-100°F 7-day avg" = "#fecc5c", 
+  "100-105°F 7-day avg" = "#fd8d3c", "> 105°F 7-day avg" = "#e31a1c"
+)
+
+category_colors <- c(
+  "> 105°F 7-day avg" = "#e31a1c", "100-105°F 7-day avg" = "#fd8d3c",
+  "95-100°F 7-day avg" = "#fecc5c", "60-65°F 7-day avg" = "#b3cde3",
+  "55-60°F 7-day avg" = "#8c96c6", "< 55°F 7-day avg" = "#88419d",
+  "> 105°F" = "#e31a1c", "100-105°F" = "#fd8d3c", "95-100°F" = "#fecc5c", 
+  "60-65°F" = "#b3cde3", "55-60°F" = "#8c96c6", "< 55°F" = "#88419d"
+)
+
+q <- ggplot() +
+  geom_line(
+    data = filter(stn_data_daily,
+                  TempCode == "< 55°F 7-day avg" | 
+                    TempCode == "55-60°F 7-day avg" |
+                    TempCode == "60-65°F 7-day avg" | 
+                    TempCode == "95-100°F 7-day avg" |
+                    TempCode == "100-105°F 7-day avg" | 
+                    TempCode == "> 105°F 7-day avg"),
+    mapping = aes(x = JDay, y = Hours, color = TempCode),
+    size = 1.5) +
+  
+  geom_point(
+    data = filter(stn_data_daily,
+                  TempCode == "< 55°F" | TempCode == "55-60°F" |
+                    TempCode == "60-65°F" | TempCode == "95-100°F" |
+                    TempCode == "100-105°F" | TempCode == "> 105°F"),
+    mapping = aes(x = JDay, y = Hours, color = TempCode),
+    alpha = 0.75, size = 3) +
+  
+  scale_color_manual(values = category_colors,
+                     #aesthetics = c("color", "fill"),
+                     labels = c("a", "b", "c", "d", "e", "f",
+                                "g", "h", "i", "j", "k", "l")) +
+  
+  facet_wrap(~ Year, ncol = 1) +
+  
+  # Specify axis breaks, gridlines, and limits
+  scale_x_continuous(
+    breaks = c(1, 15, 32, 46,
+               60, 74, 91, 105,
+               121, 135, 152, 166,
+               182, 196, 213, 227,
+               244, 258, 274),
+    #labels = c("1/1", "", "1/15", "", "2/1", "", "2/15", "", 
+    #           "3/1", "", "3/15", "", "4/1", "", "4/15", "",
+    #           "5/1", "", "5/15", "", "6/1", "", "6/15", "",
+    #           "7/1", "", "7/15", "", "8/1", "", "8/15", ""),
+    limits = c(182, 274),
+    #minor_breaks = c(1, 8, 15, 22, 32, 39, 46, 53, 60, 67, 74, 81, 
+    #                 91, 98, 105, 112, 121, 128, 135, 142, 152, 159, 166, 173,
+    #                 182, 189, 196, 203, 213, 220, 227, 234, 244),
+    expand = c(0.0, 0.0)
+  ) +
+  
+  scale_y_continuous(
+    breaks = seq(from = 0, to = max(stn_data_daily$Hours, na.rm = TRUE), 
+                 by = 3),
+    limits = c(0, 9), 
+    #max(stn_data_daily$Hours, na.rm = TRUE)),
+    minor_breaks = seq(from = 0, to = 9, 
+                       #to = max(stn_data_daily$Hours, na.rm = TRUE), 
+                       by = 1),
+    expand = c(0.06, 0.0)
+  ) +
+  
+  # Add the graph title, subtitle, and axis labels
+  ggtitle("Daily Hours below 65°F and above 95°F") +
+  labs(subtitle = "AZMET Willcox Bench Station, Cochise County, Arizona",
+       x = "\nDate",
+       y = "Hours\n",
+       caption = paste0(
+         "\ndata from Arizona Meteorological Network (cals.arizona.edu/azmet)",
+         "\nDATA NOT SHOWN DUE TO SCALE")) +
+  
+  # Further customize the figure appearance
+  theme_light(base_family = "Source Sans Pro") +
+  theme(axis.line = element_blank(),
+        axis.text.x = element_text(color = "gray40", size = 10),
+        axis.text.y = element_text(color = "gray40", size = 10),
+        axis.ticks.x.bottom = element_line(color = "gray80", size = 0.25),
+        axis.ticks.y = element_blank(),
+        axis.ticks.length.x = unit(0.0, "mm"),
+        axis.ticks.length.y = unit(0.0, "mm"),
+        axis.title.x = element_text(color = "gray40", size = 10),
+        axis.title.y = element_text(color = "gray40", size = 10),
+        legend.direction = "horizontal",
+        legend.text = element_text(color = "gray40", size = 10),
+        legend.title = element_text(color = "gray40", size = 10, face = "bold"),
+        legend.position = "bottom",
+        panel.border = element_blank(),
+        panel.grid.major.x = element_line(color = "gray80", size = 0.25),
+        panel.grid.major.y = element_line(color = "gray80", size = 0.25),
+        panel.grid.minor.x = element_blank(),
+        panel.grid.minor.y = element_blank(),
+        plot.caption = element_text(color = "gray40", hjust = 0.0, size = 7),
+        plot.caption.position = "plot",
+        plot.margin = unit(c(1, 1 ,1, 1), "mm"),
+        plot.subtitle = (element_text(family = "Source Serif Pro", size = 12)), 
+        plot.title = (element_text(face = "bold", family = "Source Serif Pro", size = 16)),
+        plot.title.position = "plot",
+        strip.background = element_rect(fill = "white"),
+        strip.text.x = element_text(color = "gray40", size = 12, face = "bold")
+  )
+
+q
+
+
+
 #  Save the figure
-ggsave(file = paste0("summer-chill-heat-azmet-willcox-bench-", 
+ggsave(file = paste0("TEST-summer-chill-heat-azmet-willcox-bench-", 
                      Sys.Date(),
                      ".eps"),
-       plot = p, device = cairo_pdf, path = NULL, scale = 1,
+       plot = q, device = cairo_pdf, path = NULL, scale = 1,
        width = 6, height = 9, units = "in", dpi = 300) 
 

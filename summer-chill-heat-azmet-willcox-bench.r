@@ -246,6 +246,6 @@ p
 ggsave(file = paste0("summer-chill-heat-azmet-willcox-bench-", 
                      Sys.Date(),
                      ".eps"),
-       plot = q, device = cairo_pdf, path = NULL, scale = 1,
+       plot = p, device = cairo_pdf, path = NULL, scale = 1,
        width = 6, height = 9, units = "in", dpi = 300) 
 

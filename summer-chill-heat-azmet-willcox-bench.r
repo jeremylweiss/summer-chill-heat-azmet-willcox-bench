@@ -25,8 +25,8 @@ library("reshape2")
 library("ggplot2")
 library("lubridate")
 library("extrafont")
-library("grid")
-library("png")
+#library("grid")
+#library("png")
 
 # Load additional font options for plotting
 font_import()

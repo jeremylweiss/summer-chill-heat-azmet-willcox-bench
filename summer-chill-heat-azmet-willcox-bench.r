@@ -160,6 +160,7 @@ category_colors <- c(
 
 p <- ggplot() +
   geom_col(
+    #data = filter(stn_data_daily, Year > yr_start),
     data = stn_data_daily,
     mapping = aes(x = JDay, y = Hours, fill = TempCode),
     position = "stack") +
